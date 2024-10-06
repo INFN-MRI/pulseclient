@@ -69,6 +69,12 @@ You can run the PulseClient from the command line, providing a simulation flag (
 
 .. code-block:: bash
 
+    start_client [simulate]
+
+or, in plugin mode, as:
+
+.. code-block:: bash
+
     start_client.py [simulate]
 
 Replace ``[simulate]`` with ``1`` for simulation or `0` for hardware mode.
