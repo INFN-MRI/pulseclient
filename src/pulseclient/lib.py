@@ -44,7 +44,9 @@ def load_config():
 
     # If the file exists in the specified or default location, load the configuration
     if os.path.exists(config_file):
-        print("Loading configuration from: {}".format(config_file))  # Use .format for compatibility
+        print(
+            "Loading configuration from: {}".format(config_file)
+        )  # Use .format for compatibility
         parser = configparser.ConfigParser()
         parser.read(config_file)
 
