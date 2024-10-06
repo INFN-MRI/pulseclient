@@ -17,20 +17,26 @@ Features
 
 Installation
 ------------
-PulseClient can be installed via pip::
+PulseClient can be installed via pip:
 
-  pip install pulseclient
+.. code-block:: bash
 
-As an alternative, you can incorporate this library in your Pulseq interpreter code as::
+    pip install pulseclient
 
-  git submodule add -b plugin https://github.com/INFN-MRI/pulseclient.git bin
+As an alternative, you can incorporate this library in your Pulseq interpreter code as:
+
+.. code-block:: bash
+
+    git submodule add -b plugin https://github.com/INFN-MRI/pulseclient.git bin
 
 Development
 -----------
-If you want to modifiy the PulseClient code base::
+If you want to modifiy the PulseClient code base:
 
-  git clone https://github.com/INFN-MRI/pulseclient.git
-  pip install -e ./pulseclient
+.. code-block:: bash
+
+    git clone https://github.com/INFN-MRI/pulseclient.git
+    pip install -e ./pulseclient
 
 Configuration
 -------------
@@ -59,17 +65,21 @@ by the Pulseq interpreter itself.
 
 Usage
 -----
-You can run the PulseClient from the command line, providing a simulation flag (``0`` for hardware, ``1`` for simulation, default is ``1``)::
+You can run the PulseClient from the command line, providing a simulation flag (``0`` for hardware, ``1`` for simulation, default is ``1``):
 
-  start_client.py [simulate]
+.. code-block:: bash
+
+    start_client.py [simulate]
 
 Replace ``[simulate]`` with ``1`` for simulation or `0` for hardware mode.
 
 Testing
 -------
-To run the tests, execute the following command in the terminal::
+To run the tests, execute the following command in the terminal:
 
-   python -m unittest discover -s tests
+.. code-block:: bash
+
+     python -m unittest discover -s tests
 
 License
 -------
