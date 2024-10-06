@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from .lib import start_server, watch_file, load_config
+from lib import start_server, watch_file, load_config
 
 
 def main():
