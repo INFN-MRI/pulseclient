@@ -19,7 +19,7 @@ DEFAULT_CONFIG = {
     "CHECK_INTERVAL": 2,
     "REMOTE_SERVER_USER": "user",
     "REMOTE_SERVER_HOST": "remote-server-address.com",
-    "REMOTE_SERVER_COMMAND": "python external_server.py &",
+    "SERVER_COMMAND": "python external_server.py &",
     "SERVER_PROCESS_NAME": "external_server.py",
     "file_path_simulation": "params.dat",
     "file_path_production": "/srv/nfs/psd/usr/psd/pulseq/temp/params.dat",
@@ -76,10 +76,10 @@ def load_config():
                         "REMOTE_SERVER_HOST",
                         fallback=config["REMOTE_SERVER_HOST"],
                     ),
-                    "REMOTE_SERVER_COMMAND": parser.get(
+                    "SERVER_COMMAND": parser.get(
                         "settings",
-                        "REMOTE_SERVER_COMMAND",
-                        fallback=config["REMOTE_SERVER_COMMAND"],
+                        "SERVER_COMMAND",
+                        fallback=config["SERVER_COMMAND"],
                     ),
                     "SERVER_PROCESS_NAME": parser.get(
                         "settings",
@@ -114,7 +114,43 @@ def load_config():
     return config
 
 
-def is_server_running(config):
+def is_localhost(ip):
+    """ Check if the IP is localhost. """
+    return ip == "127.0.0.1" or ip == "localhost"
+
+
+def _is_server_running_locally(config):
+    """
+    Check if the server process is running locally.
+    This function checks the system's process list to see if the server is running.
+    """
+    try:
+        # For Python 2.6+ and Python 3 compatibility, we use subprocess with Popen
+        if os.name == 'nt':
+            # For Windows, check with tasklist
+            process = subprocess.Popen(["tasklist"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            # For Unix-based systems (Linux/Mac), use ps
+            process = subprocess.Popen(["ps", "aux"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        stdout, _ = process.communicate()
+        # Convert to string in case it's bytes (for Python 3+)
+        stdout = stdout.decode("utf-8") if isinstance(stdout, bytes) else stdout
+
+        # Check if the server name is in the process list
+        if config["SERVER_PROCESS_NAME"] in stdout:
+            print("Server is already running.")
+            return True
+        else:
+            print("Server is not running.")
+            return False
+
+    except Exception as e:
+        print("Failed to check if server is running: %s" % str(e))
+        return False
+    
+    
+def _is_server_running_remotely(config):
     """Check if the server is running on a remote machine via SSH."""
     try:
         # Build SSH command to check if the process is running
@@ -143,30 +179,59 @@ def is_server_running(config):
         return False
 
 
-def start_server(config):
+def is_server_running(config):
+    """Check if the server is running on a remote machine."""
+    if is_localhost(config):
+        return _is_server_running_locally(config)
+    return _is_server_running_remotely(config)
+
+
+def _start_server_locally(config):
+    """Start the server on the local machine."""
+    print("Starting server locally on localhost...")
+    process = subprocess.Popen(
+        config["SERVER_COMMAND"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    output, error = process.communicate()
+    
+    if process.returncode == 0:
+        print("Server started successfully on local machine.")
+    else:
+        print("Failed to start server. Error: %s" % error.decode("utf-8"))     
+
+
+def _start_server_remotely(config):
     """Start the server on a remote machine using SSH."""
+    print("Starting server on remote machine...")
+    ssh_command = [
+        "ssh",
+        "%s@%s" % (config["REMOTE_SERVER_USER"], config["REMOTE_SERVER_HOST"]),
+        config["SERVER_COMMAND"],
+    ]
+
+    # Start the external server via SSH
+    process = subprocess.Popen(
+        ssh_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    output, error = process.communicate()
+
+    if process.returncode == 0:
+        print("Server started successfully on remote machine.")
+    else:
+        print("Failed to start server. Error: %s" % error.decode("utf-8"))     
+
+
+def start_server(config):
+    """Start the server."""
     if is_server_running(config):
         return
 
     try:
-        # SSH command to start the external server
-        ssh_command = [
-            "ssh",
-            "%s@%s" % (config["REMOTE_SERVER_USER"], config["REMOTE_SERVER_HOST"]),
-            config["REMOTE_SERVER_COMMAND"],
-        ]
-
-        # Start the external server via SSH
-        process = subprocess.Popen(
-            ssh_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        output, error = process.communicate()
-
-        if process.returncode == 0:
-            print("Server started successfully on remote machine.")
+        if is_localhost(config):
+            _start_server_locally(config)
         else:
-            print("Failed to start server. Error: %s" % error.decode("utf-8"))
-
+            _start_server_remotely(config)
+            
     except Exception as e:
         print("Error while starting server: %s" % str(e))
 
