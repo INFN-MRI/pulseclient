@@ -7,11 +7,13 @@ import sys
 import time
 import unittest
 
+from io import BytesIO  # Used to mock binary file handling
+
 # Conditional imports based on Python version
 if sys.version_info[0] == 2:
-    from mock import patch, mock_open, MagicMock  # For Python 2.7
+    from mock import call, patch, mock_open, MagicMock  # For Python 2.7
 else:
-    from unittest.mock import patch, mock_open, MagicMock  # For Python 3.x
+    from unittest.mock import call, patch, mock_open, MagicMock  # For Python 3.x
 
 from pulseclient.lib import (
     load_config,
@@ -19,6 +21,7 @@ from pulseclient.lib import (
     start_server,
     is_file_complete,
     send_file_to_server,
+    send_buffer_to_server,
     watch_file,
 )
 
@@ -82,3 +85,63 @@ class TestPulseClient(unittest.TestCase):
         with patch("pulseclient.lib.is_server_running", return_value=False):
             mock_process = MagicMock()
             mock_process.returnc
+
+
+class TestSendBufferToServer(unittest.TestCase):
+
+    @patch("builtins.open", create=True)
+    @patch("socket.socket")
+    def test_send_buffer_to_server(self, mock_socket, mock_open):
+        """
+        Test that send_buffer_to_server correctly sends data to the server
+        and writes the server's response to a file.
+        """
+
+        # Setup
+        data_buffer = b"Test byte buffer data to be sent"
+        config = {"SERVER_IP": "127.0.0.1", "SERVER_PORT": 5000}
+        response_file_path = "test_response.bin"
+        expected_server_response = [
+            b"Server response data part 1",
+            b"Server response data part 2",
+        ]
+
+        # Mock the socket connection and behavior
+        mock_sock_instance = mock_socket.return_value
+
+        # Simulate server sending data in parts, followed by an empty string (end of stream)
+        mock_sock_instance.recv.side_effect = expected_server_response + [
+            b""
+        ]  # Simulate end of transmission
+
+        # Mock file open to return a file-like mock object
+        mock_file = MagicMock()
+        mock_open.return_value.__enter__.return_value = mock_file
+
+        # Run the function
+        send_buffer_to_server(data_buffer, config, response_file_path)
+
+        # Assertions:
+        # 1. Assert socket connection was made to the correct IP and port
+        mock_socket.assert_called_once_with(socket.AF_INET, socket.SOCK_STREAM)
+        mock_sock_instance.connect.assert_called_once_with(("127.0.0.1", 5000))
+
+        # 2. Assert data was sent through the socket
+        mock_sock_instance.sendall.assert_called()  # Ensure some data was sent
+
+        # 3. Assert file writes occurred correctly
+        # Check that the file was opened in 'wb' mode
+        mock_open.assert_called_once_with(response_file_path, "wb")
+
+        # Check the data that was written to the file
+        # Now using assert_has_calls to allow for multiple calls
+        mock_file.write.assert_has_calls(
+            [
+                call(b"Server response data part 1"),
+                call(b"Server response data part 2"),
+            ],
+            any_order=True,
+        )
+
+        # # 4. Assert socket was closed
+        mock_sock_instance.close.assert_called_once()
