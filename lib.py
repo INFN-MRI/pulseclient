@@ -190,7 +190,7 @@ def _start_server_locally(config):
     """Start the server on the local machine."""
     print("Starting server locally on localhost...")
     process = subprocess.Popen(
-        config["SERVER_COMMAND"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
+        config["SERVER_COMMAND"], shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
     output, error = process.communicate()
 
@@ -211,7 +211,7 @@ def _start_server_remotely(config):
 
     # Start the external server via SSH
     process = subprocess.Popen(
-        ssh_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
+        ssh_command, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
     output, error = process.communicate()
 
