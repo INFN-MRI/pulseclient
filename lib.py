@@ -19,7 +19,7 @@ DEFAULT_CONFIG = {
     "CHECK_INTERVAL": 2,
     "REMOTE_SERVER_USER": "sdc",
     "REMOTE_SERVER_HOST": "remote-machine-name",
-    "SERVER_COMMAND": "python /srv/nfs/psd/usr/psd/pulseq/v7/bin/external_server.py",
+    "SERVER_COMMAND": "/usr/bin/python /srv/nfs/psd/usr/psd/pulseq/v7/bin/external_server.py",
     "SERVER_PROCESS_NAME": "external_server.py",
     "file_path_simulation": "params.dat",
     "file_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/params.dat",
