@@ -189,15 +189,16 @@ def is_server_running(config):
 def _start_server_locally(config):
     """Start the server on the local machine."""
     print("Starting server locally on localhost...")
-    process = subprocess.Popen(
-        config["SERVER_COMMAND"], shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-    )
-    output, error = process.communicate()
+    subprocess.Popen(config["SERVER_COMMAND"], shell=False)
+    # process = subprocess.Popen(
+    #     config["SERVER_COMMAND"], shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    # )
+    # output, error = process.communicate()
 
-    if process.returncode == 0:
-        print("Server started successfully on local machine.")
-    else:
-        print("Failed to start server. Error: %s" % error.decode("utf-8"))     
+    # if process.returncode == 0:
+    #     print("Server started successfully on local machine.")
+    # else:
+    #     print("Failed to start server. Error: %s" % error.decode("utf-8"))     
 
 
 def _start_server_remotely(config):
@@ -292,6 +293,9 @@ def send_buffer_to_server(data_buffer, config, response_file_path):
         # Send the entire data buffer over the socket using sendall
         sock.sendall(data_buffer)
         print("Data buffer sent to the server successfully.")
+        
+        # Signal that no more data will be sent
+        sock.shutdown(socket.SHUT_WR)
 
         # Now, receive the response from the server
         with open(response_file_path, "wb") as response_file:
