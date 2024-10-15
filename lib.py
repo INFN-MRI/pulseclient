@@ -189,15 +189,7 @@ def is_server_running(config):
 def _start_server_locally(config):
     """Start the server on the local machine."""
     print("Starting server locally on localhost...")
-    process = subprocess.Popen(
-        config["SERVER_COMMAND"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    output, error = process.communicate()
-    
-    if process.returncode == 0:
-        print("Server started successfully on local machine.")
-    else:
-        print("Failed to start server. Error: %s" % error.decode("utf-8"))     
+    subprocess.Popen(config["SERVER_COMMAND"])   
 
 
 def _start_server_remotely(config):
