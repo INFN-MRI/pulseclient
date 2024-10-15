@@ -316,7 +316,9 @@ def watch_file(file_path, config, output_path):
     while True:
         if os.path.exists(file_path) and is_file_complete(file_path, config):
             print("File detected and is ready: %s" % file_path)
-            send_buffer_to_server(file_path, config, output_path)
+            with open(file_path, "rb") as f:
+                data_buffer = f.read()
+                send_buffer_to_server(data_buffer, config, output_path)
             break
 
         # Wait before checking again
