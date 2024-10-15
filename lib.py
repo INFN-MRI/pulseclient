@@ -23,6 +23,8 @@ DEFAULT_CONFIG = {
     "SERVER_PROCESS_NAME": "external_server.py",
     "file_path_simulation": "params.dat",
     "file_path_production": "/srv/nfs/psd/usr/psd/pulseq/temp/params.dat",
+    "output_path_simulation": "sequence.bin",
+    "output_path_production": "/srv/nfs/psd/usr/psd/pulseq/temp/sequence.bin",
 }
 
 # Define the default config file location
@@ -32,6 +34,7 @@ DEFAULT_CONFIG_PATH = os.path.expanduser("~/.pulseclient.ini")  # User's home di
 def load_config():
     """
     Load configuration from the pulseclient.ini file.
+
     First, check the PULSECLIENT_CONFIG environment variable for the file location.
     If not set or file does not exist, fall back to the default config location.
     If no config file is found, use default values.
@@ -93,6 +96,16 @@ def load_config():
                         "file_path_production",
                         fallback=config["file_path_production"],
                     ),
+                    "output_path_simulation": parser.get(
+                        "settings",
+                        "output_path_simulation",
+                        fallback=config["output_path_simulation"],
+                    ),
+                    "output_path_production": parser.get(
+                        "settings",
+                        "output_path_production",
+                        fallback=config["output_path_production"],
+                    ),
                 }
             )
     else:
@@ -102,9 +115,7 @@ def load_config():
 
 
 def is_server_running(config):
-    """
-    Check if the server is running on a remote machine via SSH.
-    """
+    """Check if the server is running on a remote machine via SSH."""
     try:
         # Build SSH command to check if the process is running
         ssh_command = [
@@ -133,9 +144,7 @@ def is_server_running(config):
 
 
 def start_server(config):
-    """
-    Start the server on a remote machine using SSH.
-    """
+    """Start the server on a remote machine using SSH."""
     if is_server_running(config):
         return
 
@@ -163,9 +172,7 @@ def start_server(config):
 
 
 def is_file_complete(file_path, config):
-    """
-    Check if the file is complete and ready for processing by comparing file size over time.
-    """
+    """Check if the file is complete and ready for processing by comparing file size over time."""
     try:
         file_size = os.stat(file_path).st_size
         time.sleep(config["CHECK_INTERVAL"])  # Wait a bit to see if the size changes
@@ -178,9 +185,7 @@ def is_file_complete(file_path, config):
 
 
 def send_file_to_server(file_path, config):
-    """
-    Send the file over a socket connection to the external server.
-    """
+    """Send the file over a socket connection to the external server."""
     try:
         # Open a socket connection to the server
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -205,14 +210,48 @@ def send_file_to_server(file_path, config):
         print("Failed to send file to server: %s" % str(e))
 
 
-def watch_file(file_path, config):
+def send_buffer_to_server(data_buffer, config, response_file_path):
     """
-    Watch the file for changes and send it to the server once it's complete.
+    Send the byte buffer over a socket connection to the external server.
+
+    After sending the buffer, waits for the server's response to write it down to a file.
     """
+    try:
+        # Open a socket connection to the server
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((config["SERVER_IP"], config["SERVER_PORT"]))
+        print(
+            "Connected to server %s:%d" % (config["SERVER_IP"], config["SERVER_PORT"])
+        )
+
+        # Send the entire data buffer over the socket using sendall
+        sock.sendall(data_buffer)
+        print("Data buffer sent to the server successfully.")
+
+        # Now, receive the response from the server
+        with open(response_file_path, "wb") as response_file:
+            while True:
+                received_data = sock.recv(1024)
+                if not received_data:
+                    break
+                response_file.write(received_data)
+            print(
+                "Response received from server and written to %s." % response_file_path
+            )
+
+    except Exception as e:
+        print("Failed to communicate with server: %s" % str(e))
+
+    finally:
+        sock.close()  # Ensure the socket is closed
+
+
+def watch_file(file_path, config, output_path):
+    """Watch the file for changes and send it to the server once it's complete."""
     while True:
         if os.path.exists(file_path) and is_file_complete(file_path, config):
             print("File detected and is ready: %s" % file_path)
-            send_file_to_server(file_path, config)
+            send_buffer_to_server(file_path, config, output_path)
             break
 
         # Wait before checking again
