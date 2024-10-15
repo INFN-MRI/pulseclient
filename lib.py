@@ -114,9 +114,9 @@ def load_config():
     return config
 
 
-def is_localhost(ip):
+def is_localhost(config):
     """ Check if the IP is localhost. """
-    return ip == "127.0.0.1" or ip == "localhost"
+    return config["SERVER_IP"] == "127.0.0.1" or config["SERVER_IP"] == "localhost"
 
 
 def _is_server_running_locally(config):
