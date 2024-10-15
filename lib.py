@@ -14,13 +14,13 @@ else:
 
 # Default configuration values
 DEFAULT_CONFIG = {
-    "SERVER_IP": "192.168.1.100",
-    "SERVER_PORT": 12345,
+    "SERVER_IP": "127.0.0.1",
+    "SERVER_PORT": 5000,
     "CHECK_INTERVAL": 2,
-    "REMOTE_SERVER_USER": "user",
-    "REMOTE_SERVER_HOST": "remote-server-address.com",
-    "SERVER_COMMAND": "python external_server.py &",
-    "SERVER_PROCESS_NAME": "external_server.py",
+    "REMOTE_SERVER_USER": "sdc",
+    "REMOTE_SERVER_HOST": "remote-machine-name",
+    "SERVER_COMMAND": "python external_server.py",
+    "SERVER_PROCESS_NAME": "/srv/nfs/psd/usr/psd/pulseq/bin/external_server.py",
     "file_path_simulation": "params.dat",
     "file_path_production": "/srv/nfs/psd/usr/psd/pulseq/temp/params.dat",
     "output_path_simulation": "sequence.bin",
