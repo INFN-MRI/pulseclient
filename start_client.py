@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python
 
 import argparse
 from lib import start_server, watch_file, load_config
