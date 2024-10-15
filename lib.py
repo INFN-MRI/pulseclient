@@ -226,14 +226,14 @@ def start_server(config):
     if is_server_running(config):
         return
 
-    try:
-        if is_localhost(config):
-            _start_server_locally(config)
-        else:
-            _start_server_remotely(config)
+    # try:
+    if is_localhost(config):
+        _start_server_locally(config)
+    else:
+        _start_server_remotely(config)
             
-    except Exception as e:
-        print("Error while starting server: %s" % str(e))
+    # except Exception as e:
+    #     print("Error while starting server: %s" % str(e))
 
 
 def is_file_complete(file_path, config):
