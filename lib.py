@@ -19,7 +19,7 @@ DEFAULT_CONFIG = {
     "CHECK_INTERVAL": 2,
     "REMOTE_SERVER_USER": "sdc",
     "REMOTE_SERVER_HOST": "remote-machine-name",
-    "SERVER_COMMAND": ["python","toy_server.py"],
+    "SERVER_COMMAND": ["python","/srv/nfs/psd/usr/psd/pulseq/v7/bin/toy_server.py"],
     "SERVER_PROCESS_NAME": "toy_server.py",
     "file_path_simulation": "params.dat",
     "file_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/params.dat",
@@ -115,7 +115,7 @@ def load_config():
 
 
 def is_localhost(config):
-    """ Check if the IP is localhost. """
+    """ Check if the IP is localhost."""
     return config["SERVER_IP"] == "127.0.0.1" or config["SERVER_IP"] == "localhost"
 
 
