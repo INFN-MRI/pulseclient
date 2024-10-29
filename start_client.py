@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import argparse
+import os
+
 from lib import start_server, watch_file, load_config
 
 
@@ -47,6 +49,10 @@ def main():
     else:
         file_path = config["file_path_production"]
         output_path = config["output_path_production"]
+        
+    # Remove old files
+    if os.path.exists(output_path):
+        os.remove(output_path)
 
     # Start the server (on a remote machine)
     start_server(config)
