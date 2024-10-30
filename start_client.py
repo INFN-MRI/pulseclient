@@ -50,7 +50,7 @@ def main():
     else:
         file_path = config["file_path_production"]
         output_path = config["output_path_production"]
-        handshake_path = config["handshake_path_simulation"]
+        handshake_path = config["handshake_path_production"]
         
     # Start the server (on a remote machine)
     start_server(config)

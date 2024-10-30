@@ -321,7 +321,7 @@ def send_buffer_to_server(data_buffer, config, response_file_path, handshake_pat
             )
 
         # Create an empty "done" file as a handshake signal
-        with open(handshake_path, "wb") as handshake_file:
+        with open(handshake_path, "w") as handshake_file:
             pass
         print("Handshake file 'done' created at %s." % handshake_file)
 
