@@ -23,8 +23,10 @@ DEFAULT_CONFIG = {
     "SERVER_PROCESS_NAME": "toy_server.py",
     "file_path_simulation": "params.dat",
     "file_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/params.dat",
-    "output_path_simulation": "sequence.bin",
-    "output_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/sequence.bin",
+    "output_path_simulation": "response.dat",
+    "output_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/response.dat",
+    "handshake_path_simulation": "done",
+    "handshake_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/done",
 }
 
 # Define the default config file location
@@ -104,6 +106,16 @@ def load_config():
                     "output_path_production": parser.get(
                         "settings",
                         "output_path_production",
+                        fallback=config["output_path_production"],
+                    ),
+                    "handshake_path_simulation": parser.get(
+                        "settings",
+                        "handshake_path_simulation",
+                        fallback=config["handshake_path_simulation"],
+                    ),
+                    "handshake_path_production": parser.get(
+                        "settings",
+                        "handshake_path_production",
                         fallback=config["output_path_production"],
                     ),
                 }
@@ -275,12 +287,12 @@ def send_file_to_server(file_path, config):
     except Exception as e:
         print("Failed to send file to server: %s" % str(e))
 
-
-def send_buffer_to_server(data_buffer, config, response_file_path):
+def send_buffer_to_server(data_buffer, config, response_file_path, handshake_path):
     """
     Send the byte buffer over a socket connection to the external server.
 
-    After sending the buffer, waits for the server's response to write it down to a file.
+    After sending the buffer, waits for the server's response to write it down to a file,
+    and then creates a "done" file as a handshake signal.
     """
     try:
         # Open a socket connection to the server
@@ -308,6 +320,11 @@ def send_buffer_to_server(data_buffer, config, response_file_path):
                 "Response received from server and written to %s." % response_file_path
             )
 
+        # Create an empty "done" file as a handshake signal
+        with open(handshake_path, "wb") as handshake_file:
+            pass
+        print("Handshake file 'done' created at %s." % handshake_file)
+
     except Exception as e:
         print("Failed to communicate with server: %s" % str(e))
 
@@ -315,14 +332,14 @@ def send_buffer_to_server(data_buffer, config, response_file_path):
         sock.close()  # Ensure the socket is closed
 
 
-def watch_file(file_path, config, output_path):
+def watch_file(file_path, config, output_path, handshake_path):
     """Watch the file for changes and send it to the server once it's complete."""
     while True:
         if os.path.exists(file_path) and is_file_complete(file_path, config):
             print("File detected and is ready: %s" % file_path)
             with open(file_path, "rb") as f:
                 data_buffer = f.read()
-                send_buffer_to_server(data_buffer, config, output_path)
+                send_buffer_to_server(data_buffer, config, output_path, handshake_path)
             break
 
         # Wait before checking again

@@ -46,19 +46,17 @@ def main():
     if args.mode == 1:
         file_path = config["file_path_simulation"]
         output_path = config["output_path_simulation"]
+        handshake_path = config["handshake_path_simulation"]
     else:
         file_path = config["file_path_production"]
         output_path = config["output_path_production"]
+        handshake_path = config["handshake_path_simulation"]
         
-    # Remove old files
-    if os.path.exists(output_path):
-        os.remove(output_path)
-
     # Start the server (on a remote machine)
     start_server(config)
 
     # Watch for the file and send it once ready
-    watch_file(file_path, config, output_path)
+    watch_file(file_path, config, output_path, handshake_path)
 
 
 if __name__ == "__main__":
