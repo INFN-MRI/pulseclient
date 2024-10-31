@@ -13,22 +13,6 @@ else:
     import ConfigParser as configparser  # For Python 2.7
 
 # Default configuration values
-# DEFAULT_CONFIG = {
-#     "SERVER_IP": "127.0.0.1",
-#     "SERVER_PORT": 5000,
-#     "CHECK_INTERVAL": 2,
-#     "REMOTE_SERVER_USER": "sdc",
-#     "REMOTE_SERVER_HOST": "remote-machine-name",
-#     "SERVER_COMMAND": ["python","/srv/nfs/psd/usr/psd/pulseq/v7/bin/toy_server.py"],
-#     "SERVER_PROCESS_NAME": "toy_server.py",
-#     "file_path_simulation": "params.dat",
-#     "file_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/params.dat",
-#     "output_path_simulation": "response.dat",
-#     "output_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/response.dat",
-#     "handshake_path_simulation": "done",
-#     "handshake_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/done",
-# }
-
 DEFAULT_CONFIG = {
     "SERVER_IP": "127.0.0.1",
     "SERVER_PORT": 5000,
@@ -36,23 +20,29 @@ DEFAULT_CONFIG = {
     "REMOTE_SERVER_USER": "sdc",
     "REMOTE_SERVER_HOST": "remote-machine-name",
     "IS_DOCKER": True,
-    "DOCKER_IMAGE_PATH": None,
+    "DOCKER_IMAGE_PATH": "/export/home1/pulserver/pulserver-image.tar",
     "DOCKER_IMAGE": ["mcencini/pulserver"],
     "DOCKER_PORT": 5000,
-    "DOCKER_MOUNT_POINTS": [],
+    "DOCKER_MOUNT_POINTS": [
+        "/srv/nfs/psd/usr/psd/pulseq/v7/config:/home/runner/.pulserver_config.ini",
+        "/srv/nfs/psd/usr/psd/pulseq/v7/logs:/home/runner/pulserver_log",
+        "/srv/nfs/psd/usr/psd/pulseq/v7/plugins:/home/runner/pulserver_plugins",
+    ],
     "SERVER_COMMAND": ["pulserver"],
     "SERVER_SUB_COMMAND": ["start"],
     "SERVER_PROCESS_NAME": "pulserver",
-    "file_path_simulation": "/home/local/IMAGO7/mcencini/M/PREDATOR/pge2test/params.dat",
+    "file_path_simulation": "params.dat",
     "file_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/params.dat",
-    "output_path_simulation": "/home/local/IMAGO7/mcencini/M/PREDATOR/pge2test/response.dat",
+    "output_path_simulation": "response.dat",
     "output_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/response.dat",
-    "handshake_path_simulation": "/home/local/IMAGO7/mcencini/M/PREDATOR/pge2test/done",
+    "handshake_path_simulation": "done",
     "handshake_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/done",
 }
 
 # Define the default config file location
-DEFAULT_CONFIG_PATH = os.path.expanduser("~/.pulseclient.ini")  # User's home directory
+DEFAULT_CONFIG_PATH = os.path.expanduser(
+    "/srv/nfs/psd/usr/psd/pulseq/v7/config/.pulseclient.ini"
+)  # User's home directory
 
 
 def load_config():
@@ -186,7 +176,7 @@ def is_localhost(config):
 def _is_server_running_locally(config):
     """
     Check if the server process is running locally.
-    
+
     This function checks the system's process list to see if the server is running.
     """
     try:
@@ -257,11 +247,14 @@ def is_server_running(config):
 
 def _get_local_command(config):
     """Build command string."""
+    if config["DOCKER_IMAGE_PATH"] is not None:
+        cmd = ["docker", "load", "-i", config["DOCKER_IMAGE_PATH"]]
+        subprocess.Popen(cmd, shell=False)
     if config["IS_DOCKER"]:
         mnt = []
         if config["DOCKER_MOUNT_POINTS"]:
             for mount_point in config["DOCKER_MOUNT_POINTS"]:
-                mnt += ["-v", mount_point] 
+                mnt += ["-v", mount_point]
         docker_run = ["docker", "run", "--network=host"] + mnt
         docker_run += config["DOCKER_IMAGE"]
         return docker_run + config["SERVER_SUB_COMMAND"]
