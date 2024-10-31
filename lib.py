@@ -311,6 +311,8 @@ def start_server(config):
         _start_server_locally(config)
     else:
         _start_server_remotely(config)
+        
+    time.sleep(5)
 
 
 def is_file_complete(file_path, config):
