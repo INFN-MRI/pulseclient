@@ -13,19 +13,41 @@ else:
     import ConfigParser as configparser  # For Python 2.7
 
 # Default configuration values
+# DEFAULT_CONFIG = {
+#     "SERVER_IP": "127.0.0.1",
+#     "SERVER_PORT": 5000,
+#     "CHECK_INTERVAL": 2,
+#     "REMOTE_SERVER_USER": "sdc",
+#     "REMOTE_SERVER_HOST": "remote-machine-name",
+#     "SERVER_COMMAND": ["python","/srv/nfs/psd/usr/psd/pulseq/v7/bin/toy_server.py"],
+#     "SERVER_PROCESS_NAME": "toy_server.py",
+#     "file_path_simulation": "params.dat",
+#     "file_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/params.dat",
+#     "output_path_simulation": "response.dat",
+#     "output_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/response.dat",
+#     "handshake_path_simulation": "done",
+#     "handshake_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/done",
+# }
+
 DEFAULT_CONFIG = {
     "SERVER_IP": "127.0.0.1",
     "SERVER_PORT": 5000,
     "CHECK_INTERVAL": 2,
     "REMOTE_SERVER_USER": "sdc",
     "REMOTE_SERVER_HOST": "remote-machine-name",
-    "SERVER_COMMAND": ["python","/srv/nfs/psd/usr/psd/pulseq/v7/bin/toy_server.py"],
-    "SERVER_PROCESS_NAME": "toy_server.py",
-    "file_path_simulation": "params.dat",
+    "IS_DOCKER": True,
+    "DOCKER_IMAGE_PATH": None,
+    "DOCKER_IMAGE": ["mcencini/pulserver"],
+    "DOCKER_PORT": 5000,
+    "DOCKER_MOUNT_POINTS": [],
+    "SERVER_COMMAND": ["pulserver"],
+    "SERVER_SUB_COMMAND": ["start"],
+    "SERVER_PROCESS_NAME": "pulserver",
+    "file_path_simulation": "/home/local/IMAGO7/mcencini/M/PREDATOR/pge2test/params.dat",
     "file_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/params.dat",
-    "output_path_simulation": "response.dat",
+    "output_path_simulation": "/home/local/IMAGO7/mcencini/M/PREDATOR/pge2test/response.dat",
     "output_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/response.dat",
-    "handshake_path_simulation": "done",
+    "handshake_path_simulation": "/home/local/IMAGO7/mcencini/M/PREDATOR/pge2test/done",
     "handshake_path_production": "/srv/nfs/psd/usr/psd/pulseq/v7/temp/done",
 }
 
@@ -78,10 +100,40 @@ def load_config():
                         "REMOTE_SERVER_HOST",
                         fallback=config["REMOTE_SERVER_HOST"],
                     ),
+                    "IS_DOCKER": parser.get(
+                        "settings",
+                        "IS_DOCKER",
+                        fallback=config["IS_DOCKER"],
+                    ),
+                    "DOCKER_IMAGE_PATH": parser.get(
+                        "settings",
+                        "DOCKER_IMAGE_PATH",
+                        fallback=config["DOCKER_IMAGE_PATH"],
+                    ),
+                    "DOCKER_IMAGE": parser.get(
+                        "settings",
+                        "DOCKER_IMAGE",
+                        fallback=config["DOCKER_IMAGE"],
+                    ),
+                    "DOCKER_PORT": parser.get(
+                        "settings",
+                        "DOCKER_PORT",
+                        fallback=config["DOCKER_PORT"],
+                    ),
+                    "DOCKER_MOUNT_POINTS": parser.get(
+                        "settings",
+                        "DOCKER_MOUNT_POINTS",
+                        fallback=config["DOCKER_MOUNT_POINTS"],
+                    ),
                     "SERVER_COMMAND": parser.get(
                         "settings",
                         "SERVER_COMMAND",
                         fallback=config["SERVER_COMMAND"],
+                    ),
+                    "SERVER_SUB_COMMAND": parser.get(
+                        "settings",
+                        "SERVER_SUB_COMMAND",
+                        fallback=config["SERVER_SUB_COMMAND"],
                     ),
                     "SERVER_PROCESS_NAME": parser.get(
                         "settings",
@@ -127,23 +179,28 @@ def load_config():
 
 
 def is_localhost(config):
-    """ Check if the IP is localhost."""
+    """Check if the IP is localhost."""
     return config["SERVER_IP"] == "127.0.0.1" or config["SERVER_IP"] == "localhost"
 
 
 def _is_server_running_locally(config):
     """
     Check if the server process is running locally.
+    
     This function checks the system's process list to see if the server is running.
     """
     try:
         # For Python 2.6+ and Python 3 compatibility, we use subprocess with Popen
-        if os.name == 'nt':
+        if os.name == "nt":
             # For Windows, check with tasklist
-            process = subprocess.Popen(["tasklist"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = subprocess.Popen(
+                ["tasklist"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
         else:
             # For Unix-based systems (Linux/Mac), use ps
-            process = subprocess.Popen(["ps", "aux"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = subprocess.Popen(
+                ["ps", "aux"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
 
         stdout, _ = process.communicate()
         # Convert to string in case it's bytes (for Python 3+)
@@ -160,8 +217,8 @@ def _is_server_running_locally(config):
     except Exception as e:
         print("Failed to check if server is running: %s" % str(e))
         return False
-    
-    
+
+
 def _is_server_running_remotely(config):
     """Check if the server is running on a remote machine via SSH."""
     try:
@@ -198,40 +255,58 @@ def is_server_running(config):
     return _is_server_running_remotely(config)
 
 
+def _get_local_command(config):
+    """Build command string."""
+    if config["IS_DOCKER"]:
+        mnt = []
+        if config["DOCKER_MOUNT_POINTS"]:
+            for mount_point in config["DOCKER_MOUNT_POINTS"]:
+                mnt += ["-v", mount_point] 
+        docker_run = ["docker", "run", "--network=host"] + mnt
+        docker_run += config["DOCKER_IMAGE"]
+        return docker_run + config["SERVER_SUB_COMMAND"]
+    else:
+        return config["SERVER_COMMAND"] + config["SERVER_SUB_COMMAND"]
+
+
 def _start_server_locally(config):
     """Start the server on the local machine."""
     print("Starting server locally on localhost...")
-    subprocess.Popen(config["SERVER_COMMAND"], shell=False)
-    # process = subprocess.Popen(
-    #     config["SERVER_COMMAND"], shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-    # )
-    # output, error = process.communicate()
+    cmd = _get_local_command(config)
+    subprocess.Popen(cmd, shell=False)
 
-    # if process.returncode == 0:
-    #     print("Server started successfully on local machine.")
-    # else:
-    #     print("Failed to start server. Error: %s" % error.decode("utf-8"))     
+
+def _get_ssh_command(config):
+    """Build command string."""
+    if config["IS_DOCKER"]:
+        mnt = []
+        if config["DOCKER_MOUNT_POINTS"]:
+            for mount_point in config["DOCKER_MOUNT_POINTS"]:
+                mnt += ["-v", mount_point]
+        docker_run = [
+            "docker",
+            "run",
+            "-p",
+            config["SERVER_PORT"] + ":" + config["DOCKER_PORT"],
+        ] + mnt
+        docker_run += config["DOCKER_IMAGE"]
+        return docker_run + config["SERVER_SUB_COMMAND"]
+    else:
+        return config["SERVER_COMMAND"] + config["SERVER_SUB_COMMAND"]
 
 
 def _start_server_remotely(config):
     """Start the server on a remote machine using SSH."""
     print("Starting server on remote machine...")
+    cmd = _get_ssh_command(config)
     ssh_command = [
         "ssh",
         "%s@%s" % (config["REMOTE_SERVER_USER"], config["REMOTE_SERVER_HOST"]),
-        config["SERVER_COMMAND"],
+        cmd,
     ]
 
     # Start the external server via SSH
-    process = subprocess.Popen(
-        ssh_command, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-    )
-    output, error = process.communicate()
-
-    if process.returncode == 0:
-        print("Server started successfully on remote machine.")
-    else:
-        print("Failed to start server. Error: %s" % error.decode("utf-8"))     
+    subprocess.Popen(ssh_command, shell=False)
 
 
 def start_server(config):
@@ -239,14 +314,10 @@ def start_server(config):
     if is_server_running(config):
         return
 
-    # try:
     if is_localhost(config):
         _start_server_locally(config)
     else:
         _start_server_remotely(config)
-            
-    # except Exception as e:
-    #     print("Error while starting server: %s" % str(e))
 
 
 def is_file_complete(file_path, config):
@@ -287,6 +358,7 @@ def send_file_to_server(file_path, config):
     except Exception as e:
         print("Failed to send file to server: %s" % str(e))
 
+
 def send_buffer_to_server(data_buffer, config, response_file_path, handshake_path):
     """
     Send the byte buffer over a socket connection to the external server.
@@ -305,7 +377,7 @@ def send_buffer_to_server(data_buffer, config, response_file_path, handshake_pat
         # Send the entire data buffer over the socket using sendall
         sock.sendall(data_buffer)
         print("Data buffer sent to the server successfully.")
-        
+
         # Signal that no more data will be sent
         sock.shutdown(socket.SHUT_WR)
 
