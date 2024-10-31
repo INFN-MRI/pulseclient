@@ -20,7 +20,7 @@ DEFAULT_CONFIG = {
     "REMOTE_SERVER_USER": "sdc",
     "REMOTE_SERVER_HOST": "remote-machine-name",
     "IS_DOCKER": True,
-    "DOCKER_IMAGE_PATH": "/export/home1/pulserver/pulserver-image.tar",
+    # "DOCKER_IMAGE_PATH": "/export/home1/pulserver/pulserver-image.tar",
     "DOCKER_IMAGE": ["mcencini/pulserver"],
     "DOCKER_PORT": 5000,
     "DOCKER_MOUNT_POINTS": [
@@ -95,11 +95,11 @@ def load_config():
                         "IS_DOCKER",
                         fallback=config["IS_DOCKER"],
                     ),
-                    "DOCKER_IMAGE_PATH": parser.get(
-                        "settings",
-                        "DOCKER_IMAGE_PATH",
-                        fallback=config["DOCKER_IMAGE_PATH"],
-                    ),
+                    # "DOCKER_IMAGE_PATH": parser.get(
+                    #     "settings",
+                    #     "DOCKER_IMAGE_PATH",
+                    #     fallback=config["DOCKER_IMAGE_PATH"],
+                    # ),
                     "DOCKER_IMAGE": parser.get(
                         "settings",
                         "DOCKER_IMAGE",
@@ -247,9 +247,9 @@ def is_server_running(config):
 
 def _get_local_command(config):
     """Build command string."""
-    if config["DOCKER_IMAGE_PATH"] is not None:
-        cmd = ["docker", "load", "-i", config["DOCKER_IMAGE_PATH"]]
-        subprocess.Popen(cmd, shell=False)
+    # if config["DOCKER_IMAGE_PATH"] is not None:
+    #     cmd = ["docker", "load", "-i", config["DOCKER_IMAGE_PATH"]]
+    #     subprocess.Popen(cmd, shell=False)
     if config["IS_DOCKER"]:
         mnt = []
         if config["DOCKER_MOUNT_POINTS"]:
