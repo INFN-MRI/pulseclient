@@ -257,6 +257,9 @@ def is_server_running(config):
 
 def _get_local_command(config):
     """Build command string."""
+    if config["DOCKER_IMAGE_PATH"] is not None:
+        cmd = ["docker", "load", "-i", config["DOCKER_IMAGE_PATH"]]
+        subprocess.Popen(cmd, shell=False)
     if config["IS_DOCKER"]:
         mnt = []
         if config["DOCKER_MOUNT_POINTS"]:
